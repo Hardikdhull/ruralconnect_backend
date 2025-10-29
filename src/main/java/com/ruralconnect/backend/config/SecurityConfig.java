@@ -17,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -48,25 +49,34 @@ public class SecurityConfig {
         return authProvider;
     }
 
+
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz
-                        // These are our PUBLIC endpoints
+
+                        // --- Public Endpoints ---
                         .requestMatchers("/api/auth/**").permitAll()
-                        // All OTHER requests must be authenticated
+
+                        // Allow PUBLIC VIEWING of products and schemes
+                        .requestMatchers(HttpMethod.GET, "/api/products", "/api/products/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/schemes", "/api/schemes/**").permitAll()
+
+                        // *** NEW LINES TO ADD ***
+                        .requestMatchers(HttpMethod.GET, "/api/faqs").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/tutorials").permitAll()
+                        // *** END OF NEW LINES ***
+
+                        // --- Private Endpoints ---
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                // Tell Spring to use our new AuthenticationProvider
                 .authenticationProvider(authenticationProvider())
-                // Add our JWT filter BEFORE the default login filter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-
 
         return http.build();
     }
